@@ -1,0 +1,9 @@
+module_*
+*.bin
+*.csv
+ui_*
+tmp
+sahrkmi*
+*.att
+configured*.mlir
+*.out
