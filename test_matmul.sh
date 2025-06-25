@@ -12,6 +12,12 @@ set -eux
 
 ninja -C $HOME/iree-build iree-compile iree-e2e-matmul-test
 
+M=16384
+N=32768
+K=4096
+
+python3 ./generate_solution.py ${M}  ${N}  ${K}
+
 $HOME/iree-build/tools/iree-compile calls.mlir \
     --iree-hip-target=gfx942 \
     --iree-hal-target-backends=rocm \
@@ -42,22 +48,32 @@ $HOME/iree-build/tools/iree-compile matmul.mlir \
 #     --iree-hal-dump-executable-files-to . \
 #     -o tmp/dispatch.vmfb
 
-# $HOME/iree-build/tools/testing/e2e/iree-e2e-matmul-test \
-#   --device=hip \
-#   --module=tmp/dispatch.vmfb \
-#   --module=tmp/calls.vmfb \
-#   --acceptable_fp_delta=1e-02
+
+$HOME/iree-build/tools/testing/e2e/iree-e2e-matmul-test \
+  --device=hip \
+  --module=tmp/dispatch.vmfb \
+  --module=tmp/calls.vmfb \
+  --acceptable_fp_delta=1e-02
 PROFILER="rocprofv3 --att --"
-# PROFILER=
-items_per_second="$($PROFILER $HOME/iree-build/tools/iree-benchmark-module --benchmark_min_warmup_time=1 --benchmark_min_time=1s \
-  --benchmark_format=json \
+PROFILER=
+# items_per_second="$($PROFILER $HOME/iree-build/tools/iree-benchmark-module --benchmark_min_warmup_time=1 --batch_size=1 --benchmark_min_time=1s \
+#   --benchmark_format=json \
+#   --device=hip \
+#   --device_allocator=caching \
+#   --module=tmp/dispatch.vmfb \
+#   --function=matmul \
+#   --input=${M}x${K}xf8E4M3FNUZ=@lhs.bin \
+#   --input=${N}x${K}xf8E4M3FNUZ=@rhs.bin \
+#   | grep '"items_per_second":' \
+#   | cut -d ':' -f 2)"
+
+# echo "print('%.1f Tflop/s' % (${items_per_second} * ${M} * ${N} * ${K} * 2e-12))" | python
+
+
+$HOME/iree-build/tools/iree-benchmark-module --benchmark_min_warmup_time=1 --benchmark_repetitions=3 --batch_size=1  --benchmark_min_time=1s \
   --device=hip \
   --device_allocator=caching \
   --module=tmp/dispatch.vmfb \
   --function=matmul \
-  --input=4096x4096xf8E4M3FNUZ=@lhs_4096.bin \
-  --input=4096x4096xf8E4M3FNUZ=@rhs_4096.bin \
-  | grep '"items_per_second":' \
-  | cut -d ':' -f 2)"
-
-echo "print('%.1f Tflop/s' % (${items_per_second} * 4096 * 4096 * 4096 * 2e-12))" | python
+  --input=${M}x${K}xf8E4M3FNUZ=@lhs.bin \
+  --input=${N}x${K}xf8E4M3FNUZ=@rhs.bin 
