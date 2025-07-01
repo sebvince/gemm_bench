@@ -38,6 +38,27 @@ func.func @matmul() attributes {{
   
 }}"""  
     with open(output_file, "w") as f:  
+        f.write(content) 
+
+
+
+
+def generate_matmul_file_static(m: int, n: int, k: int, dtype : str, output_file: str):  
+    content = f"""
+  !A_size = tensor<{m}x{k}x{dtype}>
+  !B_size = tensor<{n}x{k}x{dtype}>
+  !C_size = tensor<{m}x{n}xf32>
+  
+  func.func @matmul(
+  %A : !A_size, %B : !B_size) -> !C_size {{
+  %cst = arith.constant 0.000000e+00 : f32
+  %empty = tensor.empty() : !C_size
+  %C = linalg.fill ins(%cst : f32) outs(%empty : !C_size) -> !C_size
+  %0 = linalg.matmul_transpose_b ins(%A, %B : !A_size, !B_size)
+                     outs(%C : !C_size) -> !C_size
+  return %0 : !C_size
+  }}"""
+    with open(output_file, "w") as f:  
         f.write(content)  
 
 
@@ -103,6 +124,13 @@ if __name__ == "__main__":
     # generate random data
     l = np.random.randint(low=0, high=(1<<n_bits-1), size=(m, k), dtype=torch_type)
     r = np.random.randint(low=0, high=(1<<n_bits-1), size=(k, n), dtype=torch_type)
+    o = np.random.randint(low=0, high=(1<<n_bits-1), size=(m, n), dtype=np.uint32)
+
+
+    # l = np.random.randint(low=0, high=(1<<n_bits-1), size=(m, n), dtype=torch_type)
+    # r = np.random.randint(low=0, high=(1<<n_bits-1), size=(m, n), dtype=torch_type)
+    
 
     l.tofile("lhs.bin")
     r.tofile("rhs.bin")
+    o.tofile("out.bin")

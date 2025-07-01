@@ -36,8 +36,7 @@ ninja -C $HOME/iree-build iree-compile iree-e2e-matmul-test
 M=8192
 N=14336
 K=4096
-TYPE=f8E4M3FNUZ
-# TYPE=f16
+TYPE=f16
 # python3 ./generate_solution.py ${M}  ${N}  ${K} ${TYPE}
 
 # $HOME/iree-build/tools/iree-compile calls.mlir \
@@ -45,7 +44,7 @@ TYPE=f8E4M3FNUZ
 #     --iree-hal-target-backends=rocm \
 #     -o tmp/calls.vmfb
 
-$HOME/iree-build/tools/iree-compile matmul.mlir \
+$HOME/iree-build/tools/iree-compile activation.mlir \
     --iree-hip-target=gfx942 \
     --iree-hal-target-backends=rocm \
     --mlir-disable-threading \
@@ -63,18 +62,21 @@ $HOME/iree-build/tools/iree-compile matmul.mlir \
 #   --module=tmp/dispatch.vmfb \
 #   --module=tmp/calls.vmfb \
 #   --acceptable_fp_delta=1e-02
-# PROFILER="rocprofv3 --att --att-activity 10 --"
-PROFILER="rocprofv3 --att --att-perfcounter-ctrl 3 --att-perfcounters SQ_INSTS_VMEM_RD,SQ_INST_LEVEL_VMEM   --"
+PROFILER="rocprofv3 --att --att-activity 10 --"
+# PROFILER="rocprofv3 --att --att-perfcounter-ctrl 3 --att-perfcounters SQ_INSTS_VMEM_RD,SQ_INST_LEVEL_VMEM   --"
 
-PROFILER=
+# PROFILER=
 # items_per_second="$($PROFILER $HOME/iree-build/tools/iree-benchmark-module --benchmark_min_warmup_time=1 --batch_size=1 --benchmark_min_time=1s \
 #   --benchmark_format=json \
 #   --device=hip \
 #   --device_allocator=caching \
 #   --module=tmp/dispatch.vmfb \
 #   --function=matmul \
-#   --input=${M}x${K}x${TYPE}=@lhs.bin \
-#   --input=${N}x${K}x${TYPE}=@rhs.bin \
+#   --input=${M}x${N}x${TYPE}=@lhs.bin \
+#   --input=${M}x${N}x${TYPE}=@rhs.bin \
+#   --input=xf32=1.0 \
+#   --input=xf32=1.0 \
+#   --input=xf32=1.0 \
 #   | grep '"items_per_second":' \
 #   | cut -d ':' -f 2)"
 
@@ -86,5 +88,9 @@ $HOME/iree-build/tools/iree-benchmark-module --benchmark_min_warmup_time=1 --ben
   --device_allocator=caching \
   --module=tmp/dispatch.vmfb \
   --function=matmul \
-  --input=${M}x${K}x${TYPE}=@lhs.bin \
-  --input=${N}x${K}x${TYPE}=@rhs.bin 
+  --input=${M}x${N}x${TYPE}=@lhs_act.bin \
+  --input=${M}x${N}x${TYPE}=@rhs_act.bin \
+  --input=xf32=1.0 \
+  --input=xf32=1.0 \
+  --input=xf32=1.0
+  
