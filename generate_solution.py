@@ -119,12 +119,12 @@ if __name__ == "__main__":
 
     # generate mlir files
     generate_calls_file(m,n,k, dtype,  "calls.mlir")  
-    generate_matmul_file(m,n,k, dtype, "matmul.mlir")  
+    generate_matmul_file_static(m,n,k, dtype, "matmul.mlir")  
 
     # generate random data
     l = np.random.randint(low=0, high=(1<<n_bits-1), size=(m, k), dtype=torch_type)
     r = np.random.randint(low=0, high=(1<<n_bits-1), size=(k, n), dtype=torch_type)
-    o = np.random.randint(low=0, high=(1<<n_bits-1), size=(m, n), dtype=np.uint32)
+    # o = np.random.randint(low=0, high=(1<<n_bits-1), size=(m, n), dtype=np.uint32)
 
 
     # l = np.random.randint(low=0, high=(1<<n_bits-1), size=(m, n), dtype=torch_type)
@@ -133,4 +133,4 @@ if __name__ == "__main__":
 
     l.tofile("lhs.bin")
     r.tofile("rhs.bin")
-    o.tofile("out.bin")
+    # o.tofile("out.bin")

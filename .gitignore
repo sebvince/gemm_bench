@@ -7,3 +7,4 @@ sahrkmi*
 *.att
 configured*.mlir
 *.out
+.rocprofv3

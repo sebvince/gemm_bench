@@ -53,8 +53,8 @@ $HOME/iree-build/tools/iree-compile activation.mlir \
     --iree-hal-dump-executable-files-to files \
     --iree-opt-level=O3 \
     -o tmp/dispatch.vmfb \
-    # --mlir-print-ir-after-all \
-    # --mlir-disable-threading 2> out.mlir
+    --mlir-print-ir-after-all \
+    --mlir-disable-threading 2> out.mlir
 
 
 # $HOME/iree-build/tools/testing/e2e/iree-e2e-matmul-test \
