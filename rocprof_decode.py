@@ -9,40 +9,44 @@ def parseMatrixShape(dispatchName):
         m, n, k = match.groups()
         return (int(m), int(n), int(k))
 
+
+def parseRocprofResults(filename):
+    data = {}
+    with open(filename, newline='') as csvfile:
+        reader = csv.DictReader(csvfile)
+        shape = None
+
+        for row in reader:
+            correlation_id = int(row['Correlation_Id'])
+            counter_name = row['Counter_Name']
+            counter_value = float(row['Counter_Value'])
+            start = float(row['Start_Timestamp'])
+            end = float(row['End_Timestamp'])
+            time_us = end - start
+
+            if correlation_id not in data:
+                data[correlation_id] = {}
+                data[correlation_id]['time'] = time_us
+
+            data[correlation_id][counter_name]=counter_value
+            if not shape:
+                shape = parseMatrixShape(row['Kernel_Name'])
+
         
-data = {}
-with open(sys.argv[1], newline='') as csvfile:
-    reader = csv.DictReader(csvfile)
-    shape = None
+        TCC_HIT_RATES = [value['TCC_HIT']/(value['TCC_MISS']+value['TCC_HIT']) for value in data.values()] 
+        times_ns = [value['time'] for value in data.values()] 
+        # Calculate the median
+        median_TCC_HIT_RATE = statistics.median(TCC_HIT_RATES)
+        median_time_ns = statistics.median(times_ns)
+        tflops = shape[0]*shape[1]*shape[2]*2/median_time_ns/1e3
+        return (median_TCC_HIT_RATE,tflops, shape)
 
+
+if __name__ == "__main__":
     print("*************************")
-    for row in reader:
-        correlation_id = int(row['Correlation_Id'])
-        counter_name = row['Counter_Name']
-        counter_value = float(row['Counter_Value'])
-        start = float(row['Start_Timestamp'])
-        end = float(row['End_Timestamp'])
-        time_us = end - start
-
-        if correlation_id not in data:
-            data[correlation_id] = {}
-            data[correlation_id]['time'] = time_us
-
-        data[correlation_id][counter_name]=counter_value
-        if not shape:
-            shape = parseMatrixShape(row['Kernel_Name'])
-
-    print("*************************")   
-    TCC_HIT_RATES = [value['TCC_HIT']/(value['TCC_MISS']+value['TCC_HIT']) for value in data.values()] 
-    times_ns = [value['time'] for value in data.values()] 
-    # Calculate the median
-    median_TCC_HIT_RATE = statistics.median(TCC_HIT_RATES)
-    median_time_ns = statistics.median(times_ns)
-
+    (median_TCC_HIT_RATE,tflops,shape) = parseRocprofResults(sys.argv[1])
     print("TCC_HIT_RATE:", median_TCC_HIT_RATE)
-    print("TFLOPS:", shape[0]*shape[1]*shape[2]*2/median_time_ns/1e3)
-    print("TIME:", median_time_ns)
+    print("TFLOPS:", tflops)
     print("SHAPE:", shape)
-    
     print("*************************")
         
