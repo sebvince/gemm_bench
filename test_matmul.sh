@@ -22,10 +22,19 @@ ninja -C $HOME/iree-build iree-compile iree-e2e-matmul-test
 # 16384	4096	32768
 
 #M=8192
-M=2048
-K=8192
-N=128256
+
+M=$1
+N=$2
+K=$3
+
+# M=2048
+# K=4096
+# N=128256
 TYPE=f16
+
+echo $M
+echo $N
+echo $K
 
 
 
@@ -41,10 +50,12 @@ $HOME/iree-build/tools/iree-compile matmul.mlir \
     --iree-hal-target-backends=rocm \
     --mlir-disable-threading \
     --iree-codegen-enable-default-tuning-specs=true \
-    --iree-hal-dump-executable-intermediates-to files \
-    --iree-hal-dump-executable-files-to files \
+    --iree-codegen-reorder-workgroups-strategy=none \
     --iree-opt-level=O3 \
     -o tmp/dispatch.vmfb 
+
+    # --iree-hal-dump-executable-intermediates-to files \
+    # --iree-hal-dump-executable-files-to files \
     # --mlir-print-ir-after-all \
     # --mlir-disable-threading 2> out.mlir
 # --iree-codegen-reorder-workgroups-strategy=transpose \
@@ -57,8 +68,14 @@ $HOME/iree-build/tools/iree-compile matmul.mlir \
 #   --acceptable_fp_delta=1e-02
 PROFILER="rocprofv3 --att --att-activity 20 --"
 # PROFILER="rocprofv3 --att --att-perfcounter-ctrl 3 --att-perfcounters SQ_INSTS_VMEM_RD,SQ_INST_LEVEL_VMEM   --"
-PROFILER="rocprofv3 --att --att-activity 10 --att-simd-select 0xF --att-buffer-size 1024000000 --"
-PROFILER="rocprofv3  --pmc TCC_HIT,TCC_MISS,TCP_TCC_READ_REQ --output-format csv --stats --output-file res.csv -- "
+# PROFILER="rocprofv3 --att --att-activity 10 --att-shader-engine-mask 0xF --att-simd-select 0x1 --att-buffer-size 1024000000 --"
+PROFILER="rocprofv3 --att --att-activity 10 --att-shader-engine-mask 0x2 --att-simd-select 0xF --att-target-cu 2 --att-buffer-size 1024000000 --"
+PROFILER="rocprofv3  --pmc TCC_HIT,TCC_MISS,TCC_HIT_sum,TCC_MISS_sum,TCP_TCC_READ_REQ --output-format csv --stats --output-file res.csv -- "
+PROFILER="rocprofv3  --pmc TCC_HIT,TCC_MISS --output-format json --stats --output-file res.json -- "
+PROFILER="rocprofv3  --pmc TCC_HIT_RATE_XCC --output-format json --stats --output-file res.json -- "
+PROFILER="rocprofv3  --pmc TCC_HIT,TCC_MISS --output-format json --stats --output-file res.json -- "
+
+# PROFILER="rocprofv3  --pmc L2CacheHit --output-format csv --stats --output-file res.csv -- "
 # PROFILER=
 
 # PROFILER=
@@ -86,4 +103,4 @@ $PROFILER $HOME/iree-build/tools/iree-benchmark-module --benchmark_min_warmup_ti
   --input=${N}x${K}x${TYPE}=@rhs.bin 
 
 
- python3 rocprof_decode.py res.csv_counter_collection.csv 
+#  python3 rocprof_decode.py res.csv_counter_collection.csv 
