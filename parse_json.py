@@ -8,7 +8,10 @@ with open('res.json_results.json', 'r') as file:
 
     
     dispatches = data['rocprofiler-sdk-tool'][0]['callback_records']['counter_collection']
-    dispatch_records = dispatches[0]["records"]
+    dispatch_index = 10
+    dispatch_data = dispatches[dispatch_index]["dispatch_data"]
+    time_ns = float(dispatch_data["end_timestamp"])-float(dispatch_data["start_timestamp"])
+    dispatch_records = dispatches[dispatch_index]["records"]
     print("nb records", len(dispatch_records))
 
     hits = [record['value'] for record in dispatch_records if record['counter_id']['handle'] == 3862]
@@ -23,3 +26,7 @@ with open('res.json_results.json', 'r') as file:
     for index in range(len(hits_xcc)):
         print(100.0*hits_xcc[index]/(hits_xcc[index]+misses_xcc[index]))
     
+    M=4096
+    N=128256
+    K=4096
+    print("TFLOPS/s :", N*M*K*2/time_ns/1e3)
