@@ -97,16 +97,8 @@ def generate_matmul_file(m: int, n: int, k: int, dtype : str, output_file: str):
         f.write(content)  
 
 
-if __name__ == "__main__":  
-    if len(sys.argv) != 5:  
-        print(f"Usage: {sys.argv[0]} <m> <n> <k> <type> ")  
-        sys.exit(1)  
-  
-    m = int(sys.argv[1])  
-    n = int(sys.argv[2])  
-    k = int(sys.argv[3])
-    type_in = sys.argv[4]
 
+def generate_files(m,n,k,type_in):    
     torch_type = np.uint16
     n_bits = 16
     dtype = type_in
@@ -115,7 +107,6 @@ if __name__ == "__main__":
       n_bits = 8
       torch_type = np.uint8
       dtype = "f8E4M3FNUZ"
-
 
     # generate mlir files
     generate_calls_file(m,n,k, dtype,  "calls.mlir")  
@@ -126,11 +117,18 @@ if __name__ == "__main__":
     r = np.random.randint(low=0, high=(1<<n_bits-1), size=(k, n), dtype=torch_type)
     # o = np.random.randint(low=0, high=(1<<n_bits-1), size=(m, n), dtype=np.uint32)
 
-
-    # l = np.random.randint(low=0, high=(1<<n_bits-1), size=(m, n), dtype=torch_type)
-    # r = np.random.randint(low=0, high=(1<<n_bits-1), size=(m, n), dtype=torch_type)
-    
-
     l.tofile("lhs.bin")
     r.tofile("rhs.bin")
     # o.tofile("out.bin")
+
+
+if __name__ == "__main__":  
+    if len(sys.argv) != 5:  
+        print(f"Usage: {sys.argv[0]} <m> <n> <k> <type> ")  
+        sys.exit(1)  
+  
+    m = int(sys.argv[1])  
+    n = int(sys.argv[2])  
+    k = int(sys.argv[3])
+    type_in = sys.argv[4]
+    generate_files(m,n,k,type_in)
