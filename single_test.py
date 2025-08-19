@@ -21,11 +21,9 @@ def compile():
 
 def run(M,N,K,TYPE,useProfiler = True):
     cmd = [ 'rocprofv3',
-            '--pmc','TCC_HIT,TCC_MISS', 
-            # '--input /home/svince/therock942/share/rocprofiler-sdk/counter_defs.yaml',
-            # ,TCC_EA0_RDREQ_DRAM_sum',
-            '--output-format json',
-            '--output-file res.json',
+            '--pmc', 'TCC_HIT,TCC_MISS,TCC_EA0_RDREQ_DRAM_sum', 
+            '--output-format', 'json',
+            '--output-file', 'res.json',
             '--',
             f'{IREE_PATH}/iree-benchmark-module', 
             '--benchmark_min_warmup_time=1',
@@ -39,16 +37,13 @@ def run(M,N,K,TYPE,useProfiler = True):
             f'--input={M}x{K}x{TYPE}=@lhs.bin',
             f'--input={N}x{K}x{TYPE}=@rhs.bin']
 
-    print(" ".join(cmd))
-    result = subprocess.run(cmd, capture_output=False, text=True)
+    result = subprocess.run(cmd, capture_output=True, text=True)
     for line in result.stdout:
         print(line, end='')  # Output each line as it arrives
-    result.wait()
+   
     if result.stderr:
-        print("STOUT:", result.stdout)
         print("STDERR:", result.stderr)
-        print("CMD:"," ".join(cmd))
-
+   
 if __name__ == "__main__":  
     M=4096
     N=4096
