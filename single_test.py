@@ -20,16 +20,20 @@ def compile():
         print("STDERR:", result.stderr)
 
 def run(M,N,K,TYPE,useProfiler = True):
+
+    counters = ['TCC_HIT','TCC_MISS','TCC_EA0_RDREQ','TCC_TAG_STALL']
+    # counters = ['L2CacheTagRamStallRate']
+
     cmd = [ 'rocprofv3',
-            '--pmc', 'TCC_HIT,TCC_MISS,TCC_EA0_RDREQ_DRAM_sum', 
+            '--pmc', ",".join(counters), 
             '--output-format', 'json',
             '--output-file', 'res.json',
             '--',
             f'{IREE_PATH}/iree-benchmark-module', 
-            '--benchmark_min_warmup_time=1',
-            '--benchmark_repetitions=3',
+            '--benchmark_min_warmup_time=0.1',
+            '--benchmark_repetitions=2',
             '--batch_size=1',
-            '--benchmark_min_time=1s',
+            '--benchmark_min_time=0.1s',
             '--device=hip',
             '--device_allocator=caching',
             '--module=tmp/dispatch.vmfb',
@@ -37,6 +41,7 @@ def run(M,N,K,TYPE,useProfiler = True):
             f'--input={M}x{K}x{TYPE}=@lhs.bin',
             f'--input={N}x{K}x{TYPE}=@rhs.bin']
 
+    print(" ".join(cmd))
     result = subprocess.run(cmd, capture_output=True, text=True)
     for line in result.stdout:
         print(line, end='')  # Output each line as it arrives
@@ -45,9 +50,9 @@ def run(M,N,K,TYPE,useProfiler = True):
         print("STDERR:", result.stderr)
    
 if __name__ == "__main__":  
-    M=4096
-    N=4096
-    K=4096
+    M=8192
+    N=32768
+    K=2048
     dtype='f16'
     filename ='res.json_results.json'
    
