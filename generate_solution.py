@@ -54,7 +54,11 @@ def generate_matmul_file_static(m: int, n: int, k: int, dtype : str, output_file
   %cst = arith.constant 0.000000e+00 : f32
   %empty = tensor.empty() : !C_size
   %C = linalg.fill ins(%cst : f32) outs(%empty : !C_size) -> !C_size
-  %0 = linalg.matmul_transpose_b ins(%A, %B : !A_size, !B_size)
+  %0 = linalg.matmul 
+     indexing_maps = [affine_map<(m, n, k) -> (m, k)>, 
+                     affine_map<(m, n, k) -> (n, k)>,// transpose
+                     affine_map<(m, n, k) -> (m, n)>]
+                     ins(%A, %B : !A_size, !B_size)
                      outs(%C : !C_size) -> !C_size
   return %0 : !C_size
   }}"""
