@@ -38,16 +38,16 @@ def parseJsonResults(filename):
     
         hits = [record['value'] for record in dispatch_records if record['counter_id']['handle'] == countersDict['TCC_HIT']]
         misses = [record['value'] for record in dispatch_records if record['counter_id']['handle'] == countersDict['TCC_MISS']]
-        EA_reqs = [record['value'] for record in dispatch_records if record['counter_id']['handle'] == countersDict['TCC_EA0_RDREQ']]
+        # EA_reqs = [record['value'] for record in dispatch_records if record['counter_id']['handle'] == countersDict['TCC_EA0_RDREQ']]
 
         hits_xcc = [sum(hits[i:i+16]) for i in range(0, len(hits), 16)]
         misses_xcc = [sum(misses[i:i+16]) for i in range(0, len(misses), 16)]
-        EA_reqs_xcc = [sum(EA_reqs[i:i+16]) for i in range(0, len(EA_reqs), 16)]
+        # EA_reqs_xcc = [sum(EA_reqs[i:i+16]) for i in range(0, len(EA_reqs), 16)]
        
         for index in range(len(hits_xcc)):
             L2hitrate = 100.0*hits_xcc[index]/(hits_xcc[index]+misses_xcc[index])
-            EA_reqs = EA_reqs_xcc[index]
-            print(f'L2HitRate {L2hitrate} % - EA Reqs : {EA_reqs}')
+            # EA_reqs = EA_reqs_xcc[index]
+            print(f'L2HitRate {L2hitrate}')
         
         print(f'Time : {time_ns/1e3} us')
 

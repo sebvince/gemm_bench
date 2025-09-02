@@ -1,7 +1,7 @@
 import subprocess
 import os
 from generate_solution import generate_files
-from rocprofResultsParser import parseJsonResults
+from rocprofResultsParser import parseJsonResults,parseCsvResults
 
 home_dir = os.path.expanduser("~")
 IREE_PATH=f'{home_dir}/iree-build/tools'
@@ -20,9 +20,8 @@ def compile(useTranspose = False):
     if result.stderr:
         print("STDERR:", result.stderr)
 
-def run(M,N,K,TYPE, profilePerXCD = True):
-
-    counters = ['TCC_HIT','TCC_MISS','TCC_EA0_RDREQ']
+def run(M,N,K,TYPE, profilePerXCD = False):
+    counters = ['TCC_HIT','TCC_MISS'] #,'TCC_EA0_RDREQ']
     output_format = 'json' if profilePerXCD else 'csv'
     cmd = [ 'rocprofv3',
             '--pmc', ",".join(counters), 
@@ -54,8 +53,11 @@ if __name__ == "__main__":
     N=128256
     K=4096
     dtype='f16'
-        
-    filename ='res.json_results.json'
+    profilePerXCD = False
+    filename ='res.csv_counter_collection.csv'
+
+    if profilePerXCD:
+        filename ='res.json_results.json'
    
     if os.path.exists(filename):
         os.remove(filename)
@@ -65,5 +67,11 @@ if __name__ == "__main__":
     print('Compiling...')
     compile()
     print('Running...')
-    run(M,N,K,dtype)
-    parseJsonResults(filename)
+    run(M,N,K,dtype,profilePerXCD)
+    if profilePerXCD:
+        parseJsonResults(filename)
+    else:
+        parseCsvResults(filename)
+        (median_TCC_HIT_RATE,median_time_ns) = parseCsvResults(filename)
+        print("TCC_HIT_RATE:", median_TCC_HIT_RATE)
+        print("Time (ms):", median_time_ns/1e6)
