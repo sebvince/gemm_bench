@@ -1,12 +1,16 @@
 import json
 import numpy as np
+import sys
+import os
+import statistics
+import csv
 
 # Parse Json results from rocprofv3 to display L2Cache Hit rate per XCD
 # To use with:
 # PROFILER="rocprofv3  --pmc TCC_HIT,TCC_MISS --output-format json --stats --output-file res.json -- "
 # Display L2 cache hit rate per XCD
 
-def parseJsonResults(filename, M, N, K):
+def parseJsonResults(filename):
     with open(filename, 'r') as file:
         data = json.load(file)
         counters = data['rocprofiler-sdk-tool'][0]['counters']
@@ -26,9 +30,10 @@ def parseJsonResults(filename, M, N, K):
             dispatch_data = dispatches[index]["dispatch_data"]
             timings_ns.append(float(dispatch_data["end_timestamp"])-float(dispatch_data["start_timestamp"]))
         
-        time_ns = np.median(timings_ns)
-        dispatch_index = timings_ns.index(time_ns)
-
+        sorted_indices = sorted(range(len(timings_ns)), key=lambda i: timings_ns[i])
+        dispatch_index = sorted_indices[len(sorted_indices)//2]
+        time_ns = timings_ns[dispatch_index]
+    
         dispatch_records = dispatches[dispatch_index]["records"]
     
         hits = [record['value'] for record in dispatch_records if record['counter_id']['handle'] == countersDict['TCC_HIT']]
@@ -42,18 +47,43 @@ def parseJsonResults(filename, M, N, K):
         for index in range(len(hits_xcc)):
             L2hitrate = 100.0*hits_xcc[index]/(hits_xcc[index]+misses_xcc[index])
             EA_reqs = EA_reqs_xcc[index]
-            # print(f'Hit {L2hitrate} % - Reqs : {EA_reqs} - tcc_tag_stall : {tcc_tag_stall_xcc[index]}')
             print(f'L2HitRate {L2hitrate} % - EA Reqs : {EA_reqs}')
         
         print(f'Time : {time_ns/1e3} us')
-        print("TFLOPS/s :", N*M*K*2/time_ns/1e3)
 
+def parseCsvResults(filename):
+    data = {}
+    with open(filename, newline='') as csvfile:
+        reader = csv.DictReader(csvfile)
+        shape = None
+
+        for row in reader:
+            correlation_id = int(row['Correlation_Id'])
+            counter_name = row['Counter_Name']
+            counter_value = float(row['Counter_Value'])
+            start = float(row['Start_Timestamp'])
+            end = float(row['End_Timestamp'])
+            time_us = end - start
+
+            if correlation_id not in data:
+                data[correlation_id] = {}
+                data[correlation_id]['time'] = time_us
+
+            data[correlation_id][counter_name]=counter_value
+        
+        TCC_HIT_RATES = [value['TCC_HIT']/(value['TCC_MISS']+value['TCC_HIT']) for value in data.values()] 
+        times_ns = [value['time'] for value in data.values()] 
+        # Calculate the median
+        median_TCC_HIT_RATE = statistics.median(TCC_HIT_RATES)
+        median_time_ns = statistics.median(times_ns)
+        return (median_TCC_HIT_RATE,median_time_ns)
 
 if __name__ == "__main__":
-    M=8192
-    N=32768
-    K=2048
-    dtype='f16'
-    filename ='res.json_results.json'
-   
-    parseJsonResults(filename,M,N,K)
+    filename = sys.argv[1]
+    _, file_extension = os.path.splitext(filename)
+    if file_extension == ".csv":
+        (median_TCC_HIT_RATE,median_time_ns) = parseCsvResults(filename)
+        print("TCC_HIT_RATE:", median_TCC_HIT_RATE)
+        print("Time (ms):", median_time_ns/1e6)
+    elif file_extension == ".json":
+        parseJsonResults(filename)

@@ -1,33 +1,33 @@
 import subprocess
 import os
 from generate_solution import generate_files
-from parse_json import parseJsonResults
+from rocprofResultsParser import parseJsonResults
 
 home_dir = os.path.expanduser("~")
 IREE_PATH=f'{home_dir}/iree-build/tools'
 
-def compile():
+def compile(useTranspose = False):
+    transposeStrategy = 'transpose' if useTranspose else 'none'
     cmd = [f'{IREE_PATH}/iree-compile',
     'matmul.mlir',
     '--iree-hip-target=gfx942',
     '--iree-hal-target-backends=rocm',
     '--iree-codegen-enable-default-tuning-specs=true',
-    '--iree-codegen-reorder-workgroups-strategy=transpose',
+    f'--iree-codegen-reorder-workgroups-strategy={transposeStrategy}',
     '--iree-opt-level=O3',
     '-o','tmp/dispatch.vmfb']
     result = subprocess.run(cmd, capture_output=True, text=True)
     if result.stderr:
         print("STDERR:", result.stderr)
 
-def run(M,N,K,TYPE,useProfiler = True):
+def run(M,N,K,TYPE, profilePerXCD = True):
 
-    counters = ['TCC_HIT','TCC_MISS','TCC_EA0_RDREQ','TCC_TAG_STALL']
-    # counters = ['L2CacheTagRamStallRate']
-
+    counters = ['TCC_HIT','TCC_MISS','TCC_EA0_RDREQ']
+    output_format = 'json' if profilePerXCD else 'csv'
     cmd = [ 'rocprofv3',
             '--pmc', ",".join(counters), 
-            '--output-format', 'json',
-            '--output-file', 'res.json',
+            '--output-format', output_format,
+            '--output-file', f'res.{output_format}',
             '--',
             f'{IREE_PATH}/iree-benchmark-module', 
             '--benchmark_min_warmup_time=0.1',
@@ -51,9 +51,10 @@ def run(M,N,K,TYPE,useProfiler = True):
    
 if __name__ == "__main__":  
     M=8192
-    N=32768
-    K=2048
+    N=128256
+    K=4096
     dtype='f16'
+        
     filename ='res.json_results.json'
    
     if os.path.exists(filename):
@@ -65,4 +66,4 @@ if __name__ == "__main__":
     compile()
     print('Running...')
     run(M,N,K,dtype)
-    parseJsonResults(filename,M,N,K)
+    parseJsonResults(filename)
