@@ -13,15 +13,18 @@ def compile(useTranspose = False):
     '--iree-hip-target=gfx942',
     '--iree-hal-target-backends=rocm',
     '--iree-codegen-enable-default-tuning-specs=true',
+    # '--iree-hip-enable-tensor-ukernels',
+    '--iree-hal-dump-executable-files-to=files',
     f'--iree-codegen-reorder-workgroups-strategy={transposeStrategy}',
     '--iree-opt-level=O3',
     '-o','tmp/dispatch.vmfb']
+    print(" ".join(cmd))
     result = subprocess.run(cmd, capture_output=True, text=True)
     if result.stderr:
         print("STDERR:", result.stderr)
 
 def run(M,N,K,TYPE, profilePerXCD = False):
-    counters = ['TCC_HIT','TCC_MISS'] #,'TCC_EA0_RDREQ']
+    counters = ['TCC_HIT','TCC_MISS','TCC_EA0_RDREQ','TCC_EA0_RDREQ_LEVEL']
     output_format = 'json' if profilePerXCD else 'csv'
     cmd = [ 'rocprofv3',
             '--pmc', ",".join(counters), 
@@ -49,11 +52,12 @@ def run(M,N,K,TYPE, profilePerXCD = False):
         print("STDERR:", result.stderr)
    
 if __name__ == "__main__":  
-    M=8192
-    N=128256
+    M=2048
+    N=65536
     K=4096
     dtype='f16'
     profilePerXCD = False
+    transposedReorder = False
     filename ='res.csv_counter_collection.csv'
 
     if profilePerXCD:
@@ -65,13 +69,13 @@ if __name__ == "__main__":
 
     generate_files(M,N,K,dtype)
     print('Compiling...')
-    compile()
+    compile(transposedReorder)
     print('Running...')
     run(M,N,K,dtype,profilePerXCD)
     if profilePerXCD:
         parseJsonResults(filename)
     else:
-        parseCsvResults(filename)
-        (median_TCC_HIT_RATE,median_time_ns) = parseCsvResults(filename)
+        (median_TCC_HIT_RATE,median_time_ns,median_TCC_EA0_RDREQ , median_EA0_RDREQ_LEVEL) = parseCsvResults(filename)
         print("TCC_HIT_RATE:", median_TCC_HIT_RATE)
+        print("EA Latency:", median_EA0_RDREQ_LEVEL/median_TCC_EA0_RDREQ)
         print("Time (ms):", median_time_ns/1e6)

@@ -114,7 +114,7 @@ def generate_files(m,n,k,type_in):
 
     # generate mlir files
     generate_calls_file(m,n,k, dtype,  "calls.mlir")  
-    generate_matmul_file(m,n,k, dtype, "matmul.mlir")  
+    generate_matmul_file_static(m,n,k, dtype, "matmul.mlir")  
 
     # generate random data
     l = np.random.randint(low=0, high=(1<<n_bits-1), size=(m, k), dtype=torch_type)

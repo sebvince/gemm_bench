@@ -73,17 +73,22 @@ def parseCsvResults(filename):
         
         TCC_HIT_RATES = [value['TCC_HIT']/(value['TCC_MISS']+value['TCC_HIT']) for value in data.values()] 
         times_ns = [value['time'] for value in data.values()] 
+        TCC_EA0_RDREQs = [value['TCC_EA0_RDREQ'] for value in data.values()] 
+        TCC_EA0_RDREQ_LEVELs = [value['TCC_EA0_RDREQ_LEVEL'] for value in data.values()] 
         # Calculate the median
         median_TCC_HIT_RATE = statistics.median(TCC_HIT_RATES)
         median_time_ns = statistics.median(times_ns)
-        return (median_TCC_HIT_RATE,median_time_ns)
+        median_TCC_EA0_RDREQ = statistics.median(TCC_EA0_RDREQs)
+        median_EA0_RDREQ_LEVEL = statistics.median(TCC_EA0_RDREQ_LEVELs)
+        return (median_TCC_HIT_RATE,median_time_ns,median_TCC_EA0_RDREQ,median_EA0_RDREQ_LEVEL)
 
 if __name__ == "__main__":
     filename = sys.argv[1]
     _, file_extension = os.path.splitext(filename)
     if file_extension == ".csv":
-        (median_TCC_HIT_RATE,median_time_ns) = parseCsvResults(filename)
+        (median_TCC_HIT_RATE,median_time_ns,median_TCC_EA0_RDREQ , median_EA0_RDREQ_LEVEL) = parseCsvResults(filename)
         print("TCC_HIT_RATE:", median_TCC_HIT_RATE)
+        print("EA Latency:", median_EA0_RDREQ_LEVEL/median_TCC_EA0_RDREQ)
         print("Time (ms):", median_time_ns/1e6)
     elif file_extension == ".json":
         parseJsonResults(filename)
