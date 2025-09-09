@@ -1,13 +1,12 @@
 import csv
-import subprocess
-from rocprof_decode import parseRocprofResults
+import os
+from generate_solution import generate_files
+from rocprofResultsParser import parseJsonResults,parseCsvResults
+from single_test import compile,run
 
-# M = [1024,2048,4096,8192,16384,32768,65536,128256,131072]
-# N = [1024,2048,4096,8192,16384,32768,65536,128256,131072]
-# M = [1024,2048,4096,8192,16384]
-M = [1024, 2048,4096,8192,16384]
-N = [32768,65536,128256]
-K = [2048, 4096]
+M = [2048,4096,4352,8192,8448,16384,16640,32768,33024,65536,65792,128256,131072]
+N = [2048,4096,4352,8192,8448,16384,16640,32768,33024,65536,65792,128256,131072]
+K = [4096]
 
 test_cases = []
 
@@ -17,26 +16,51 @@ for m in M:
             size_gb = ((m*k + n*k + n*m)*2)/1e9
             if size_gb<6:
                 test_cases.append((m,n,k))
-                # test_cases.append((n,m,k))
+
+
+def getLastId(fileName):
+    last_id = -1
+    if os.path.exists(fileName):
+        with open(fileName, 'r', newline='') as csvfile:
+            reader = csv.reader(csvfile)
+            next(reader)  # Skip header row
+            for row in reader:
+                if row:  
+                    last_id = int(row[0]) 
+    else:
+        with open(fileName, 'w', newline='') as csvfile:
+            writer = csv.writer(csvfile)
+            writer.writerow(['ID','M', 'N', 'K', 'TCC_HIT_RATE', 'time_ns','TCC_EA0_RDREQ','EA0_RDREQ_LEVEL'])
+    return last_id
+
+fileName = 'summary'
+startId = getLastId(fileName)+1
+
+# Options
+dtype='f16'
+isStatic = True
+transposedReorder = False
+
+fileName = fileName + '_static' if isStatic else fileName + '_dynamic'
+fileName = fileName + '_transposed' if transposedReorder else fileName + '_regular'
+fileName += f'_{dtype}'
+fileName += '.csv'
+
+print("Output to " + fileName)
 
 data = []
 nb_tests = len(test_cases)
-for index in range(nb_tests):
+for index in range(startId,nb_tests):
     (m,n,k) = test_cases[index]
     print(f'Matmul_{m}_{n}_{k} : {index}')
-    result = subprocess.run(['./test_matmul.sh', f'{m}', f'{n}', f'{k}'], capture_output=True, text=True)
-    # print("STDOUT:", result.stdout)
-    print("STDERR:", result.stderr)
-    (median_TCC_HIT_RATE,tflops,shape) = parseRocprofResults("res.csv_counter_collection.csv")
-    data.append([shape[0],shape[1],shape[2], median_TCC_HIT_RATE, tflops])
-    print("RES ",data[len(data)-1])
-    # Write to CSV file
-    with open('summary.csv', 'w', newline='') as csvfile:
+    generate_files(m,n,k,dtype)
+    compile(transposedReorder)
+    run(m,n,k,dtype)
+    (median_TCC_HIT_RATE,median_time_ns,median_TCC_EA0_RDREQ , median_EA0_RDREQ_LEVEL) = parseCsvResults('res.csv_counter_collection.csv')
+    
+    with open(fileName, 'a', newline='') as csvfile:
         writer = csv.writer(csvfile)
-        writer.writerow(['M', 'N', 'K', 'Median_TCC_HIT_RATE', 'TFLOPS'])
-        writer.writerows(data)
+        writer.writerow([index,m, n, k, median_TCC_HIT_RATE, median_time_ns,median_TCC_EA0_RDREQ,median_EA0_RDREQ_LEVEL])
 
-# for value in data:
-#     print(value)
 
 

@@ -102,7 +102,7 @@ def generate_matmul_file(m: int, n: int, k: int, dtype : str, output_file: str):
 
 
 
-def generate_files(m,n,k,type_in):    
+def generate_files(m,n,k,type_in, isStatic = True):    
     torch_type = np.uint16
     n_bits = 16
     dtype = type_in
@@ -113,8 +113,11 @@ def generate_files(m,n,k,type_in):
       dtype = "f8E4M3FNUZ"
 
     # generate mlir files
-    generate_calls_file(m,n,k, dtype,  "calls.mlir")  
-    generate_matmul_file_static(m,n,k, dtype, "matmul.mlir")  
+    generate_calls_file(m,n,k, dtype,  "calls.mlir")
+    if isStatic:
+      generate_matmul_file_static(m,n,k, dtype, "matmul.mlir")  
+    else:
+      generate_matmul_file(m,n,k, dtype, "matmul.mlir")  
 
     # generate random data
     l = np.random.randint(low=0, high=(1<<n_bits-1), size=(m, k), dtype=torch_type)
