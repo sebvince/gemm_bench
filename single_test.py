@@ -33,7 +33,7 @@ def run(M,N,K,TYPE, profilePerXCD = False):
             '--',
             f'{IREE_PATH}/iree-benchmark-module', 
             '--benchmark_min_warmup_time=0.1',
-            '--benchmark_repetitions=2',
+            '--benchmark_repetitions=5',
             '--batch_size=1',
             '--benchmark_min_time=0.1s',
             '--device=hip',
@@ -43,17 +43,21 @@ def run(M,N,K,TYPE, profilePerXCD = False):
             f'--input={M}x{K}x{TYPE}=@lhs.bin',
             f'--input={N}x{K}x{TYPE}=@rhs.bin']
 
-    print(" ".join(cmd))
-    result = subprocess.run(cmd, capture_output=True, text=True)
-    for line in result.stdout:
-        print(line, end='')  # Output each line as it arrives
-   
-    if result.stderr:
-        print("STDERR:", result.stderr)
+    while True:
+        print(" ".join(cmd))
+        try:
+            result = subprocess.run(cmd, capture_output=True, text=True, timeout=100)
+            for line in result.stdout:
+                print(line, end='')  # Output each line as it arrives
+            break  # Exit loop if successful
+        except subprocess.TimeoutExpired:
+            print(f"Command timed out after 100 seconds. Retrying...")   
    
 if __name__ == "__main__":  
-    M=2048
-    N=65536
+
+
+    M=8192
+    N=128256
     K=4096
     dtype='f16'
     profilePerXCD = False
@@ -77,5 +81,8 @@ if __name__ == "__main__":
     else:
         (median_TCC_HIT_RATE,median_time_ns,median_TCC_EA0_RDREQ , median_EA0_RDREQ_LEVEL) = parseCsvResults(filename)
         print("TCC_HIT_RATE:", median_TCC_HIT_RATE)
+        print("EA0_RDREQ_LEVEL:", median_EA0_RDREQ_LEVEL)
+        print("median_TCC_EA0_RDREQ:", median_TCC_EA0_RDREQ)
         print("EA Latency:", median_EA0_RDREQ_LEVEL/median_TCC_EA0_RDREQ)
         print("Time (ms):", median_time_ns/1e6)
+        print("FLOPS (ms):", M*N*K*2/median_time_ns/1e3)

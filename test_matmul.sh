@@ -16,8 +16,7 @@ $HOME/iree-build/tools/iree-compile matmul.mlir \
     --iree-hal-dump-executable-benchmarks-to=files \
     --iree-config-add-tuner-attributes \
     --iree-opt-level=O3 \
-    -o tmp/dispatch.vmfb \
-    --mlir-print-ir-after-all 2> out.mlir
+    -o tmp/dispatch.vmfb 
 
 $HOME/iree-build/tools/iree-compile calls.mlir \
     --iree-hip-target=gfx942 \
