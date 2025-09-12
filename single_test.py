@@ -13,7 +13,7 @@ def compile(useTranspose = False):
     '--iree-hip-target=gfx942',
     '--iree-hal-target-backends=rocm',
     '--iree-codegen-enable-default-tuning-specs=true',
-    # '--iree-hip-enable-tensor-ukernels',
+    '--iree-hip-enable-tensor-ukernels',
     '--iree-hal-dump-executable-files-to=files',
     f'--iree-codegen-reorder-workgroups-strategy={transposeStrategy}',
     '--iree-opt-level=O3',
@@ -60,6 +60,7 @@ if __name__ == "__main__":
     N=128256
     K=4096
     dtype='f16'
+    isStatic = False
     profilePerXCD = False
     transposedReorder = False
     filename ='res.csv_counter_collection.csv'
@@ -71,7 +72,7 @@ if __name__ == "__main__":
         os.remove(filename)
         print("Removed result file.")
 
-    generate_files(M,N,K,dtype)
+    generate_files(M,N,K,dtype,isStatic)
     print('Compiling...')
     compile(transposedReorder)
     print('Running...')
