@@ -40,9 +40,11 @@ def getLastId(fileName):
 fileName = 'summary'
 
 # Options
-dtype='f16'
+# dtype='f16'
 isStatic = sys.argv[1]=='1'
 transposedReorder = sys.argv[2]=='1'
+dtype = sys.argv[3]
+
 print("isStatic:", isStatic)
 print("transposedReorder:", transposedReorder)
 

@@ -107,10 +107,10 @@ def generate_files(m,n,k,type_in, isStatic = True):
     n_bits = 16
     dtype = type_in
 
-    if type_in == "f8":
+    if type_in == "f8E4M3FNUZ":
       n_bits = 8
       torch_type = np.uint8
-      dtype = "f8E4M3FNUZ"
+      # dtype = "f8E4M3FNUZ"
 
     # generate mlir files
     generate_calls_file(m,n,k, dtype,  "calls.mlir")

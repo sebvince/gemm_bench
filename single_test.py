@@ -59,7 +59,7 @@ if __name__ == "__main__":
     M=8192
     N=128256
     K=4096
-    dtype='f16'
+    dtype='f8E4M3FNUZ'
     isStatic = False
     profilePerXCD = False
     transposedReorder = False
