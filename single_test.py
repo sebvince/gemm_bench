@@ -59,6 +59,8 @@ if __name__ == "__main__":
     M=8192
     N=128256
     K=4096
+    tileSize = 128
+    dtype='f16'#'f8E4M3FNUZ'
     dtype='f8E4M3FNUZ'
     isStatic = False
     profilePerXCD = False
@@ -72,7 +74,7 @@ if __name__ == "__main__":
         os.remove(filename)
         print("Removed result file.")
 
-    generate_files(M,N,K,dtype,isStatic)
+    generate_files(M,N,K,dtype,isStatic,tileSize)
     print('Compiling...')
     compile(transposedReorder)
     print('Running...')

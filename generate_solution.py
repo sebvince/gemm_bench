@@ -66,16 +66,16 @@ def generate_matmul_file_static(m: int, n: int, k: int, dtype : str, output_file
         f.write(content)  
 
 
-def generate_matmul_file(m: int, n: int, k: int, dtype : str, output_file: str):  
+def generate_matmul_file(m: int, n: int, k: int, dtype : str, output_file: str, tileSize: int = 256):  
     content = f"""func.func @matmul(%lhs: tensor<?x{k}x{dtype}>, %rhs: tensor<{n}x{k}x{dtype}>) -> tensor<?x{n}xf32> {{
   %c0 = arith.constant 0 : index
-  %c256 = arith.constant 256 : index
+  %c{tileSize} = arith.constant {tileSize} : index
   %m = tensor.dim %lhs, %c0 : tensor<?x{k}x{dtype}>
-  %m_outer = arith.divsi %m, %c256 : index
-  %lhs_expanded = tensor.expand_shape %lhs [[0, 1], [2]] output_shape [%m_outer, 256, {k}] : tensor<?x{k}x{dtype}> into tensor<?x256x{k}x{dtype}>
-  %init_acc = tensor.empty(%m_outer) : tensor<?x256x{n}xf32>
+  %m_outer = arith.divsi %m, %c{tileSize} : index
+  %lhs_expanded = tensor.expand_shape %lhs [[0, 1], [2]] output_shape [%m_outer, {tileSize}, {k}] : tensor<?x{k}x{dtype}> into tensor<?x{tileSize}x{k}x{dtype}>
+  %init_acc = tensor.empty(%m_outer) : tensor<?x{tileSize}x{n}xf32>
   %c0_acc_type = arith.constant 0.0: f32 
-  %acc = linalg.fill ins(%c0_acc_type : f32) outs(%init_acc : tensor<?x256x{n}xf32>) -> tensor<?x256x{n}xf32>
+  %acc = linalg.fill ins(%c0_acc_type : f32) outs(%init_acc : tensor<?x{tileSize}x{n}xf32>) -> tensor<?x{tileSize}x{n}xf32>
   %result_expanded = linalg.generic {{
     indexing_maps = [
       affine_map<(d0, d1, d2, d3) -> (d0, d1, d3)>,
@@ -84,8 +84,8 @@ def generate_matmul_file(m: int, n: int, k: int, dtype : str, output_file: str):
     ], iterator_types = [
       "parallel", "parallel", "parallel", "reduction"
     ]
-  }} ins(%lhs_expanded, %rhs : tensor<?x256x{k}x{dtype}>, tensor<{n}x{k}x{dtype}>)
-    outs(%acc : tensor<?x256x{n}xf32>)
+  }} ins(%lhs_expanded, %rhs : tensor<?x{tileSize}x{k}x{dtype}>, tensor<{n}x{k}x{dtype}>)
+    outs(%acc : tensor<?x{tileSize}x{n}xf32>)
   {{
   ^bb0(%lhs_val: {dtype}, %rhs_val: {dtype}, %out: f32):
     %56 = arith.extf %lhs_val : {dtype} to f32
@@ -93,8 +93,8 @@ def generate_matmul_file(m: int, n: int, k: int, dtype : str, output_file: str):
     %58 = arith.mulf %56, %57 : f32
     %59 = arith.addf %out, %58 : f32
     linalg.yield %59 : f32
-  }} -> tensor<?x256x{n}xf32>
-  %result = tensor.collapse_shape %result_expanded [[0, 1], [2]] : tensor<?x256x{n}xf32> into tensor<?x{n}xf32>
+  }} -> tensor<?x{tileSize}x{n}xf32>
+  %result = tensor.collapse_shape %result_expanded [[0, 1], [2]] : tensor<?x{tileSize}x{n}xf32> into tensor<?x{n}xf32>
   return %result: tensor<?x{n}xf32>
 }}"""
     with open(output_file, "w") as f:  
@@ -102,7 +102,7 @@ def generate_matmul_file(m: int, n: int, k: int, dtype : str, output_file: str):
 
 
 
-def generate_files(m,n,k,type_in, isStatic = True):    
+def generate_files(m,n,k,type_in, isStatic = True, tileSize = 256):    
     torch_type = np.uint16
     n_bits = 16
     dtype = type_in
@@ -117,7 +117,7 @@ def generate_files(m,n,k,type_in, isStatic = True):
     if isStatic:
       generate_matmul_file_static(m,n,k, dtype, "matmul.mlir")  
     else:
-      generate_matmul_file(m,n,k, dtype, "matmul.mlir")  
+      generate_matmul_file(m,n,k, dtype, "matmul.mlir",tileSize)  
 
     # generate random data
     l = np.random.randint(low=0, high=(1<<n_bits-1), size=(m, k), dtype=torch_type)
