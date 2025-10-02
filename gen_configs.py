@@ -71,6 +71,7 @@ def main():
     parser.add_argument('--startId', type=int, required=False, default= 0, help='Start id for benchmark')
     parser.add_argument('--dynamic', action='store_true', help='Enable dynamic blocked shapes')
     parser.add_argument('--dtype', type=str, required=False, default="f16", help='Data type')
+    parser.add_argument('--outdir', type=str, required=True, help='Output directory')
     args = parser.parse_args()
 
     
@@ -79,8 +80,9 @@ def main():
     print(f"StartId: {args.startId}")
     print(f"Dynamic: {args.dynamic}")
     print(f"dtype: {args.dtype}")
+    print(f"Outdir: {args.outdir}")
 
-    fileName = 'summary'
+    fileName = args.outdir+ '/summary'
     fileName = fileName + '_static' if not args.dynamic else fileName + '_dynamic'
     fileName += f'_{args.dtype}'
     fileName += '.csv'
