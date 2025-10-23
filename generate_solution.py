@@ -120,8 +120,8 @@ def generate_files(m,n,k,type_in, isStatic = True, tileSize = 256):
       generate_matmul_file(m,n,k, dtype, "matmul.mlir",tileSize)  
 
     # generate random data
-    l = np.random.randint(low=0, high=(1<<n_bits-1), size=(m, k), dtype=torch_type)
-    r = np.random.randint(low=0, high=(1<<n_bits-1), size=(k, n), dtype=torch_type)
+    l = np.random.randint(low=0, high=((1<<n_bits)-1), size=(m, k), dtype=torch_type)
+    r = np.random.randint(low=0, high=((1<<n_bits)-1), size=(k, n), dtype=torch_type)
     # o = np.random.randint(low=0, high=(1<<n_bits-1), size=(m, n), dtype=np.uint32)
 
     l.tofile("lhs.bin")

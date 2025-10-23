@@ -13,7 +13,8 @@ def compile():
     '--iree-hal-target-backends=rocm',
     '--iree-codegen-enable-default-tuning-specs=true',
     '--iree-hip-enable-tensor-ukernels',
-    # '--iree-hal-dump-executable-files-to=files',
+    '--iree-hal-dump-executable-files-to=files',
+    '--iree-hip-enable-register-spill-warning',
     '--iree-opt-level=O3',
     '-o','tmp/dispatch.vmfb']
     print(" ".join(cmd))
@@ -34,7 +35,7 @@ def run(M,N,K,TYPE, profilePerXCD = False):
             '--benchmark_repetitions=5',
             '--batch_size=1',
             '--benchmark_min_time=0.1s',
-            '--device=hip',
+            '--device=hip:1',
             '--device_allocator=caching',
             '--module=tmp/dispatch.vmfb',
             '--function=matmul',
@@ -64,16 +65,22 @@ if __name__ == "__main__":
 # | 8448 | 14336 | 4096 | -51.5 % | 🔴 10.3 % | 1556081.5 | 1716822.0 | 578 | NEW : 1.679323 / OLD :
 # | 8448 | 16384 | 4096 | -48.5 % | 🔴 12.9 % | 1610863.0 | 1819174.0 | 623 | NEW : 1.7714185 / OLD : 1.782656
 # | 8704 | 14336 | 4096 | -45.2 % | 🔴 10.4 % | 1566718.0 | 1730161.0 | 591 | NEW : 1.641787 / OLD :1.740531
-
+# BufferizeDispatchTensorLoadStorePass
+#ROCDLConfigureBufferInstructions
     M=4864
-    N=16384
-    K=4096
+    N=4096
+    K=4096+64
+    # K=32768+64
+
+    # M=8192
+    # N=128256
+    # K=4096
     tileSize = 256
     dtype='f16'#'f8E4M3FNUZ'
     # dtype='f8E4M3FNUZ'
     isStatic = True
     profilePerXCD = False
-    transposedReorder = False
+    
     filename ='res.csv_counter_collection.csv'
 
     if profilePerXCD:
@@ -85,7 +92,7 @@ if __name__ == "__main__":
 
     generate_files(M,N,K,dtype,isStatic,tileSize)
     print('Compiling...')
-    compile(transposedReorder)
+    compile()
     print('Running...')
     run(M,N,K,dtype,profilePerXCD)
     if profilePerXCD:
