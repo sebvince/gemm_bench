@@ -3,18 +3,23 @@
 M=$1
 N=$2
 K=$3
+TYPE=$4
+IS_STATIC=$5
+TILE_SIZE=$6
 
-TYPE=f16
-python3 ./generate_solution.py ${M} ${N} ${K} ${TYPE}
+# TYPE=f16
+python3 ./generate_solution.py ${M} ${N} ${K} ${TYPE} ${IS_STATIC} ${TILE_SIZE}
 
 $HOME/iree-build/tools/iree-compile matmul.mlir \
     --iree-hip-target=gfx942 \
     --iree-hal-target-backends=rocm \
     --mlir-disable-threading \
+    --iree-hip-enable-tensor-ukernels \
     --iree-codegen-enable-default-tuning-specs=true \
     --iree-codegen-reorder-workgroups-strategy=none \
     --iree-hal-dump-executable-benchmarks-to=files \
     --iree-config-add-tuner-attributes \
+    --iree-hip-specialize-dispatches \
     --iree-opt-level=O3 \
     -o tmp/dispatch.vmfb 
 

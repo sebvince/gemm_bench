@@ -55,14 +55,14 @@ def run(M,N,K,TYPE, profilePerXCD = False):
    
 if __name__ == "__main__":  
 
-    M=128
-    N=4096
-    K=14336
+    M=640
+    N=128256
+    K=4096
     # K=32768+64
 
-    # M=19*256+128
-    # N=16*256
-    # K=4096
+    M=19*256+128
+    N=16*256
+    K=4096
     tileSize = 128
     # dtype='f8E4M3FNUZ'
     dtype='f16'
