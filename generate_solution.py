@@ -71,6 +71,7 @@ def generate_matmul_file(m: int, n: int, k: int, dtype : str, output_file: str, 
   %c0 = arith.constant 0 : index
   %c{tileSize} = arith.constant {tileSize} : index
   %m = tensor.dim %lhs, %c0 : tensor<?x{k}x{dtype}>
+  //%m = util.assume.int %m_dim<umin = 128, umax = 524160, udiv = 128> : index
   %m_outer = arith.divsi %m, %c{tileSize} : index
   %lhs_expanded = tensor.expand_shape %lhs [[0, 1], [2]] output_shape [%m_outer, {tileSize}, {k}] : tensor<?x{k}x{dtype}> into tensor<?x{tileSize}x{k}x{dtype}>
   %init_acc = tensor.empty(%m_outer) : tensor<?x{tileSize}x{n}xf32>
@@ -106,11 +107,10 @@ def generate_files(m,n,k,type_in, isStatic = True, tileSize = 256):
     torch_type = np.uint16
     n_bits = 16
     dtype = type_in
-
-    if type_in == "f8E4M3FNUZ":
+    
+    if type_in == "f8E4M3FNUZ" or type_in == "f8E4M3FN":
       n_bits = 8
       torch_type = np.uint8
-      # dtype = "f8E4M3FNUZ"
 
     # generate mlir files
     generate_calls_file(m,n,k, dtype,  "calls.mlir")
@@ -122,20 +122,21 @@ def generate_files(m,n,k,type_in, isStatic = True, tileSize = 256):
     # generate random data
     l = np.random.randint(low=0, high=((1<<n_bits)-1), size=(m, k), dtype=torch_type)
     r = np.random.randint(low=0, high=((1<<n_bits)-1), size=(k, n), dtype=torch_type)
-    # o = np.random.randint(low=0, high=(1<<n_bits-1), size=(m, n), dtype=np.uint32)
 
     l.tofile("lhs.bin")
     r.tofile("rhs.bin")
-    # o.tofile("out.bin")
+
 
 
 if __name__ == "__main__":  
-    if len(sys.argv) != 5:  
-        print(f"Usage: {sys.argv[0]} <m> <n> <k> <type> ")  
+    if len(sys.argv) != 7:  
+        print(f"Usage: {sys.argv[0]} <m> <n> <k> <type> <isStatic> <tileSize>")  
         sys.exit(1)  
   
     m = int(sys.argv[1])  
     n = int(sys.argv[2])  
     k = int(sys.argv[3])
     type_in = sys.argv[4]
-    generate_files(m,n,k,type_in)
+    isStatic = sys.argv[5] == "True"
+    tileSize = sys.argv[6]
+    generate_files(m,n,k,type_in,isStatic,tileSize)
