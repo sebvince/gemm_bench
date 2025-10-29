@@ -65,6 +65,30 @@ def generate_matmul_file_static(m: int, n: int, k: int, dtype : str, output_file
     with open(output_file, "w") as f:  
         f.write(content)  
 
+def generate_matmul_file_dynamic(m: int, n: int, k: int, dtype : str, output_file: str, tileSize: int = 256):  
+    content = f"""
+  !A_size = tensor<?x{k}x{dtype}>
+  !B_size = tensor<{n}x{k}x{dtype}>
+  !C_size = tensor<?x{n}xf32>
+  
+  func.func @matmul(
+  %A : !A_size, %B : !B_size) -> !C_size {{
+  %c0 = arith.constant 0 : index
+  %cst = arith.constant 0.000000e+00 : f32
+  %dim = tensor.dim %A, %c0 : tensor<?x{k}x{dtype}>
+  %m = util.assume.int %dim<umin = {tileSize}, udiv = {tileSize}> : index
+  %empty = tensor.empty(%m) : !C_size
+  %C = linalg.fill ins(%cst : f32) outs(%empty : !C_size) -> !C_size
+  %0 = linalg.matmul 
+     indexing_maps = [affine_map<(m, n, k) -> (m, k)>, 
+                     affine_map<(m, n, k) -> (n, k)>,// transpose
+                     affine_map<(m, n, k) -> (m, n)>]
+                     ins(%A, %B : !A_size, !B_size)
+                     outs(%C : !C_size) -> !C_size
+  return %0 : !C_size
+  }}"""
+    with open(output_file, "w") as f:  
+        f.write(content)  
 
 def generate_matmul_file(m: int, n: int, k: int, dtype : str, output_file: str, tileSize: int = 256):  
     content = f"""func.func @matmul(%lhs: tensor<?x{k}x{dtype}>, %rhs: tensor<{n}x{k}x{dtype}>) -> tensor<?x{n}xf32> {{
@@ -117,7 +141,7 @@ def generate_files(m,n,k,type_in, isStatic = True, tileSize = 256):
     if isStatic:
       generate_matmul_file_static(m,n,k, dtype, "matmul.mlir")  
     else:
-      generate_matmul_file(m,n,k, dtype, "matmul.mlir",tileSize)  
+      generate_matmul_file_dynamic(m,n,k, dtype, "matmul.mlir", tileSize)  
 
     # generate random data
     l = np.random.randint(low=0, high=((1<<n_bits)-1), size=(m, k), dtype=torch_type)

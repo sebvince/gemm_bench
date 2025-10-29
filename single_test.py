@@ -9,7 +9,7 @@ IREE_PATH=f'{home_dir}/iree-build/tools'
 def compile():
     cmd = [f'{IREE_PATH}/iree-compile',
     'matmul.mlir',
-    '--iree-hip-target=gfx942',
+    '--iree-hip-target=gfx950',
     '--iree-hal-target-backends=rocm',
     '--iree-codegen-enable-default-tuning-specs=true',
     '--iree-hip-enable-tensor-ukernels',
@@ -63,9 +63,9 @@ if __name__ == "__main__":
     M=19*256+128
     N=16*256
     K=4096
-    tileSize = 128
+    tileSize = 256
     # dtype='f8E4M3FNUZ'
-    dtype='f16'
+    dtype='bf16'
     # dtype='f8E4M3FNUZ'
     isStatic = False
     profilePerXCD = False
